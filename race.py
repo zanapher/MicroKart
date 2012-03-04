@@ -11,7 +11,12 @@ class Race(object):
 		self.racers = []
 		self.laps = laps
 		self.time = 0. # current time in the race (will be set to 0 when the first racer starts)
+		
+		# the time counter
 		self.time_label = pyglet.text.Label(color=(230, 230, 230, 255), bold=True, batch=window.batch)
+		self.time_label.x = 10
+		self.time_label.y = self.window.height - 30
+		
 		for i, char in enumerate(characters):
 			self.racers.append(Racer(self, i, char))
 		self.player1 = self.racers[0]

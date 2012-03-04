@@ -42,6 +42,8 @@ def main():
 	
 	@window.event
 	def on_resize(width, height):
+		window.race.time_label.y = height - 30
+		window.ui.dark_bg.vertices = (0,0,0,height, window.ui.mapshift_x, height, 0, 0, window.ui.mapshift_x, height, window.ui.mapshift_x,0)
 		window.ui.fix_shift_map()
 	
 	@window.event
@@ -117,7 +119,7 @@ def main():
 		elif symbol == key.D:
 			window.race.player2.input_right = False
 
-	window.race = Race(window, 15, [DKJR, PEACH])
+	window.race = Race(window, 13, [PEACH, BOWSER, KOOPA, TOAD, MARIO, LUIGI, YOSHI, DKJR])
 	window.ui = UI(window, window.race)
 	pyglet.clock.schedule(update)
 	pyglet.app.run()

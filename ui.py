@@ -12,7 +12,7 @@ class UI(object):
 		self.map_y = 0
 		self.map_zoom = 2
 		self.group = pyglet.graphics.OrderedGroup(10)
-		self.window.batch.add_indexed(4, GL_TRIANGLES, self.group, [0,1,2,0,2,3], ('v2i', (0,0,0,self.window.height, self.mapshift_x, self.window.height, self.mapshift_x,0)), ('c4B', (0,0,0,200)*4))
+		self.dark_bg = self.window.batch.add(6, GL_TRIANGLES, self.group, ('v2i', (0,0,0,self.window.height, self.mapshift_x, self.window.height, 0, 0, self.mapshift_x, self.window.height, self.mapshift_x,0)), ('c4B', (0,0,0,200)*6))
 	
 	def fix_shift_map(self):
 		"""forbid the map to be shifted more than what the window can display"""
@@ -58,8 +58,6 @@ class UI(object):
 	def update(self):
 		"""update the UI"""
 		h = self.window.height - 60 # vertical position of the first racer icon
-		self.race.time_label.x = 10
-		self.race.time_label.y = h + 30
 		for i, r in enumerate(self.race.racers):
 			r.rank = i # update rank
 			r.photo.position = 20, h - 50*r.rank # reorder racer icons

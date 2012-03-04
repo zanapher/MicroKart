@@ -12,14 +12,14 @@ class Racer(object):
 		self.rank = rank
 		self.character = character
 		self.car = Car(race, self, character, race.track.start_positions[rank])
-		self.photo = pyglet.sprite.Sprite(self.character['sprite_seq'][0], batch=race.window.batch)
+		self.photo = pyglet.sprite.Sprite(self.character.photo, batch=race.window.batch)
 		self.state = RacerState()
 		self.item = ITEMS[0]
 		self.item_sprite = pyglet.sprite.Sprite(self.item.image, batch=race.window.batch)
 		self.lap_sprite = pyglet.sprite.Sprite(sprite_seq[-1], batch=race.window.batch)
 		self.lap = 0
 		self.lap_times = []
-		self.lap_times_label = pyglet.text.Label(color=self.character['color']+(255,), font_name="Courier", font_size=10, bold=True, width=200, multiline=True, batch=race.window.batch)
+		self.lap_times_label = pyglet.text.Label(color=self.character.color+(255,), font_name="Courier", font_size=10, bold=True, width=200, multiline=True, batch=race.window.batch)
 		self.display_times()
 		
 		# possible duration inputs

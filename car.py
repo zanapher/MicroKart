@@ -45,12 +45,12 @@ class Car(object):
 	def choose_sprite(self):
 		"""returns the appropriate sprite image index according to the orientation of the car"""
 		angle = -(math.pi/2 + self.direction) % (2*math.pi) # translate the angle to correspond to the sprites (0 is up, increasing clockwise)
-		return self.character['sprite_seq'][int(round(angle * 11 / math.pi)) % 22] # there are 22 possible orientation sprites
+		return self.character.sprite_seq[int(round(angle * 11 / math.pi)) % 22] # there are 22 possible orientation sprites
 	
 	# player inputs
 	def turn(self, dt):
 		"""turn the car after dt seconds (positive: turn left, negative: turn right)"""
-		self.set_direction(self.get_direction() + self.character['turn'] * dt)
+		self.set_direction(self.get_direction() + self.character.turn_speed * dt)
 	def jump(self):
 		"""the car makes a low jump"""
 		if not self.state.jump and not self.state.aerial:
@@ -73,9 +73,9 @@ class Car(object):
 	def mass(self):
 		"""returns the mass of the car"""
 		if self.state.lightning:
-			return self.character['mass']/2
+			return self.character.mass/2
 		else:
-			return self.character['mass']
+			return self.character.mass
 	def is_vulnerable(self):
 		"""test whether the car can be harmed"""
 		if self.state.lakitu or self.state.star:
@@ -85,9 +85,9 @@ class Car(object):
 	def get_radius(self):
 		"""returns the current radius of the car"""
 		if self.state.lightning:
-			return self.character['radius']/2
+			return self.character.radius/2
 		else:
-			return self.character['radius']
+			return self.character.radius
 	def set_position(self, new_position):
 		"""change the current position of the car"""
 		# check if the finish line was passed
@@ -170,12 +170,12 @@ class Car(object):
 			elif self.racer.input_right:
 				self.turn(-dt)
 			if self.racer.input_accelerate:
-				acc += direction_vector.normalize(self.character['acceleration']) * dt / mass
+				acc += direction_vector.normalize(self.character.acceleration) * dt / mass
 			if self.racer.input_brake:
-				acc -= direction_vector.normalize(self.character['acceleration']) * dt / mass / 2
+				acc -= direction_vector.normalize(self.character.acceleration) * dt / mass / 2
 		
 		# ** fluid friction
-		ff = -self.character['friction'] * speed_vector * dt / mass
+		ff = -self.character.friction * speed_vector * dt / mass
 		
 		# ** solid friction (parallel and orthogonal are computed separately)
 		# parallel solid friction
@@ -184,7 +184,7 @@ class Car(object):
 			psf_coef = speed_norm
 		psf = -psf_coef * (u_speed * direction_vector) * direction_vector
 		# orthogonal solid friction
-		osf_coef = (self.character['adhesion'] + self.race.track.ground_friction(self.position)) * dt / mass
+		osf_coef = (self.character.adhesion + self.race.track.ground_friction(self.position)) * dt / mass
 		if osf_coef > speed_norm:
 			osf_coef = speed_norm
 		osf = -osf_coef * (u_speed * left_vector) * left_vector
