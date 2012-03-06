@@ -49,15 +49,17 @@ class Car(object):
 	# player inputs
 	def turn(self, dt):
 		"""turn the car after dt seconds (positive: turn left, negative: turn right)"""
-		self.set_direction(self.get_direction() + self.character.turn_speed * dt)
+		self.set_direction(self.direction + self.character.turn_speed * dt)
 	def jump(self):
 		"""the car makes a low jump"""
 		if not self.state.jump and not self.state.aerial:
 			self.state.change(jump=0.25)
+	def spin(self):
+		"""make the car spin out of control"""
+		self.state.change(spin=1.)
 	def lakitu(self):
 		"""the car must be put back on the track by Lakitu"""
 		self.set_position(self.race.track.get_beacon(self.last_ground)) # move the car to the nearest beacon
-		self.racer.state.active = False
 		self.stop()
 		self.state.change(lakitu = 1.) # timer until the car is dropped on the track
 		track = self.race.track
@@ -77,16 +79,22 @@ class Car(object):
 			return self.character.mass
 	def is_vulnerable(self):
 		"""test whether the car can be harmed"""
-		if self.state.lakitu or self.state.star:
+		if self.state.lakitu or self.state.star or self.state.spin:
 			return False
 		else:
 			return True
-	def get_radius(self):
+	def radius(self):
 		"""returns the current radius of the car"""
 		if self.state.lightning:
 			return self.character.radius/2
 		else:
 			return self.character.radius
+	def acceleration(self):
+		"""returns the current acceleration coefficient of the car"""
+		if self.state.lightning:
+			return self.character.acceleration/2
+		else:
+			return self.character.acceleration
 	def set_position(self, new_position):
 		"""change the current position of the car"""
 		# check if the finish line was passed
@@ -151,9 +159,6 @@ class Car(object):
 	def set_speed(self, new_speed):
 		"""changes the speed of the car"""
 		self.speed = new_speed
-	def get_direction(self):
-		"""returns the current orientation of the car (in radians)"""
-		return self.direction
 	def get_direction_vector(self):
 		"""returns the orientation of the car as a unit vector"""
 		return Vector(math.cos(self.direction), math.sin(self.direction))
@@ -162,6 +167,19 @@ class Car(object):
 		self.direction = new_direction % (2*math.pi)
 		self.sprite.image = self.choose_sprite() # update the sprite of the car
 	
+	def collision(self, car):
+		"""simulate an elastic collision between two cars"""
+		direction_p = (car.position - self.position).normalize(1.)
+		direction_o = Vector(-direction_p.y, direction_p.x)
+		u1p, u1o = self.speed * direction_p, self.speed * direction_o
+		u2p, u2o = car.speed * direction_p, car.speed * direction_o
+		if u1p > u2p:
+			m1, m2 = self.mass(), car.mass()
+			v1p = (u1p*(m1-m2) + 2*m2*u2p) / (m1+m2)
+			v2p = (u2p*(m2-m1) + 2*m1*u1p) / (m1+m2)
+			self.set_speed(u1o*direction_o + v1p*direction_p)
+			car.set_speed(u2o*direction_o + v2p*direction_p)
+
 	def update(self, dt):
 		"""make the car move after dt seconds"""
 		mass = self.mass()
@@ -174,15 +192,15 @@ class Car(object):
 		# read inputs:
 		acc = Vector(0., 0.)
 		brake = False
-		if self.racer.state.active:
+		if self.racer.active():
 			if self.racer.input_left:
 				self.turn(dt)
 			elif self.racer.input_right:
 				self.turn(-dt)
 			if self.racer.input_accelerate:
-				acc += direction_vector.normalize(self.character.acceleration) * dt / mass
+				acc += direction_vector.normalize(self.acceleration()) * dt / mass
 			if self.racer.input_brake:
-				acc -= direction_vector.normalize(self.character.acceleration) * dt / mass / 2
+				acc -= direction_vector.normalize(self.acceleration()) * dt / mass / 2
 		
 		# ** fluid friction
 		ff = -self.character.friction * speed_vector * dt / mass
@@ -201,41 +219,44 @@ class Car(object):
 		
 		self.set_speed(self.speed + acc + ff + psf + osf)
 		self.move(self.position + self.speed * dt)
+		
+		rank = self.racer.rank
+		for i in range(rank):
+			car = self.race.racers[i].car
+			if self.position.distance(car.position) < self.radius() + car.radius():
+				self.collision(car)
 		self.state.update(dt)
-
 
 class CarState(object):
 	"""The current state of a car"""
 	def __init__(self, car):
 		self.car = car
 		self.jump = 0. # car is jumping
-		self.mushroom = 0. # player has used a mushroom
 		self.star = 0. # car is under the effect of a power star (remaining time)
 		self.coins = 0 # number of coins
 		self.aerial = 0. # car is flying
 		self.lightning = 0. # car has been affected by a lightning (remaining time)
 		self.lakitu = 0. # if the car is being rescued by Lakitu (fallen in deep ground)
+		self.spin = 0. # the car is spinning out of control
 	
-	def change(self, lightning=None, jump=None, aerial=None, mushroom=None, lakitu=None):
+	def change(self, lightning=None, jump=None, aerial=None, lakitu=None, spin=None):
 		"""changes the state of the car, in a way that enables to fix the different parameters that are affected"""
-		if lightning != None:
+		if not lightning is None:
 			self.lightning = lightning
 			if lightning > 0:
 				self.car.sprite.scale = .5
 				self.car.shadow.scale = .5
-		if jump != None: # regular jump
+		if not jump is None: # regular jump
 			self.jump = jump
-		if aerial != None: # super jump (feather or bumper)
+		if not aerial is None: # super jump (feather or bumper)
 			self.aerial = aerial
-		if mushroom != None:
-			self.mushroom = mushroom
-		if lakitu != None:
+		if not lakitu is None:
 			self.lakitu = lakitu
+		if not spin is None:
+			self.spin = spin
 	
 	def update(self, dt):
 		"""updates the state of a car after dt seconds"""
-		if self.mushroom:
-			self.mushroom = max(0., self.mushroom - dt)
 		if self.jump:
 			self.jump = max(0., self.jump - dt)
 		if self.aerial:
@@ -254,4 +275,6 @@ class CarState(object):
 			self.car.sprite.opacity = opacity
 			if not self.lakitu:
 				self.car.lakitu_sprite.delete()
-				self.car.racer.state.active = True
+		if self.spin:
+			self.car.set_direction(self.car.direction + dt*2*math.pi)
+			self.spin = max(0, self.spin - dt)

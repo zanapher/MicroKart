@@ -20,13 +20,13 @@ class PowerUpCoin(PowerUp):
 	def __init__(self):
 		super(PowerUpCoin, self).__init__(sprite_seq['item coins'], "Coins")
 	def on_use(self, race, racer, alternate):
-		racer.car.state.coins += 5
+		racer.car.state.coins += 3
 
 class PowerUpBanana(PowerUp):
 	def __init__(self):
 		super(PowerUpBanana, self).__init__(sprite_seq['item banana'], "Banana")
 	def on_use(self, race, racer, alternate):
-		safe_distance = 8 + racer.car.get_radius() # the radius of a banana is 4
+		safe_distance = 8 + racer.car.radius() # the radius of a banana is 4
 		position = racer.car.position - racer.car.get_direction_vector().normalize(safe_distance)
 		if not race.track.type(position) in [WALL, DEEP]:
 		# banana cannot appear in deep ground or wall
@@ -36,7 +36,6 @@ class PowerUpMushroom(PowerUp):
 	def __init__(self):
 		super(PowerUpMushroom, self).__init__(sprite_seq['item mushroom'], "Mushroom")
 	def on_use(self, race, racer, alternate):
-		racer.car.state.change(mushroom=1.)
 		if racer.car.speed.norm() < 400.:
 			racer.car.set_speed(racer.car.speed.normalize(400.))
 
@@ -44,10 +43,10 @@ class PowerUpGreenShell(PowerUp):
 	def __init__(self):
 		super(PowerUpGreenShell, self).__init__(sprite_seq['item green shell'], "Green Shell")
 	def on_use(self, race, racer, alternate):
-		safe_distance = 8 + racer.car.get_radius() # the radius of a green shell is 4
+		safe_distance = 8 + racer.car.radius() # the radius of a green shell is 4
 		if alternate: # shell is shot slowly backwards
 			position = racer.car.position - racer.car.get_direction_vector().normalize(safe_distance)
-			direction = racer.car.get_direction() + math.pi # shell goes backwards
+			direction = racer.car.direction + math.pi # shell goes backwards
 			speed = 80
 		else:
 			position = racer.car.position + racer.car.get_direction_vector().normalize(safe_distance)
@@ -61,9 +60,9 @@ class PowerUpRedShell(PowerUp):
 	def __init__(self):
 		super(PowerUpRedShell, self).__init__(sprite_seq['item red shell'], "Red Shell")
 	def on_use(self, race, racer, alternate):
-		safe_distance = 8 + racer.car.get_radius() # the radius of a red shell is 4
+		safe_distance = 8 + racer.car.radius() # the radius of a red shell is 4
 		position = racer.car.position + racer.car.get_direction_vector().normalize(safe_distance)
-		direction = racer.car.get_direction()
+		direction = racer.car.direction
 		speed = max(racer.car.speed.norm() + 50, 200)
 		rank = race.racers.index(racer)
 		if rank == 0:
@@ -86,9 +85,9 @@ class PowerUpLightning(PowerUp):
 		super(PowerUpLightning, self).__init__(sprite_seq['item lightning'], "Lightning")
 	def on_use(self, race, racer, alternate):
 		for opponent in race.racers:
-			if opponent != racer and opponent.car.is_vulnerable():
+			if not opponent is racer and opponent.car.is_vulnerable():
 				opponent.car.state.change(lightning=3.)
-				opponent.car.stop()
+				opponent.car.spin()
 
 class PowerUpStar(PowerUp):
 	def __init__(self):
@@ -132,12 +131,12 @@ class Particle(object):
 		for p in self.race.particles:
 			if self.removed:
 				return
-			if p != self and p.vulnerable and self.position.distance(p.position) <= self.radius + p.radius:
+			if not p is self and p.vulnerable and self.position.distance(p.position) <= self.radius + p.radius:
 				self.particle_collision(p)
 		for r in self.race.racers:
 			if self.removed:
 				return
-			if self.position.distance(r.car.position) <= self.radius + r.car.get_radius() and not r.car.state.aerial:
+			if self.position.distance(r.car.position) <= self.radius + r.car.radius() and not r.car.state.aerial:
 				self.car_collision(r.car)
 	
 	def particle_collision(self, particle):
@@ -164,7 +163,7 @@ class ParticleBanana(Particle):
 	def car_collision(self, car):
 		self.remove()
 		if car.is_vulnerable():
-			car.stop()
+			car.spin()
 
 class ParticleGreenShell(Particle):
 	"""a green shell that bounces across the track"""
@@ -181,7 +180,7 @@ class ParticleGreenShell(Particle):
 		new_position = current_position + move
 		path = bresenham(current_position, new_position)
 		for i, c in enumerate(path):
-			if track.type(c, hit=True) == WALL:
+			if track.type(c, hit=True) is WALL:
 			# the shell bounces
 				if c[0] != path[i-1][0]: # vertical wall
 					self.direction = -self.direction + math.pi
@@ -192,7 +191,7 @@ class ParticleGreenShell(Particle):
 				if self.speed <= 40:
 					return self.remove() # if the shell becomes too slow it disappears
 				break
-			elif track.type(new_position) == DEEP:
+			elif track.type(new_position) is DEEP:
 			# the shell disappears
 				return self.remove()
 		self.set_position(new_position)
@@ -201,7 +200,7 @@ class ParticleGreenShell(Particle):
 	def car_collision(self, car):
 		self.remove()
 		if car.is_vulnerable():
-			car.stop()
+			car.spin()
 	
 	def particle_collision(self, p):
 			p.remove()
@@ -242,7 +241,7 @@ class ParticleRedShell(Particle):
 	def car_collision(self, car):
 		self.remove()
 		if car.is_vulnerable():
-			car.stop()
+			car.spin()
 	
 	def particle_collision(self, p):
 			p.remove()

@@ -55,23 +55,23 @@ class Track(object):
 		self.start_positions = []
 		# Parse data to place special objects (coins, vanishing wall, ice blocks)
 		for i, c in enumerate(self.data):
-			if c == GHOST:
+			if c is GHOST:
 				x, y = i % 128, 127 - i / 128
 				self.objects[(x, y)] = ObjectGhostWall(self, x, y)
 		# Parse special data for track elements (finish line, starting positions, etc.)
 		for i, c in enumerate(self.special_data):
-			if c == FINISH and self.special_data[i-1] != FINISH:
+			if c is FINISH and not self.special_data[i-1] is FINISH:
 			# left extremity of the finish line
 				finish_x1 = (i % 128)*8
 				finish_y = (127 - i/128)*8
-			elif c == FINISH and self.special_data[i+1] != FINISH:
+			elif c is FINISH and not self.special_data[i+1] is FINISH:
 			# right extremity of the finish line
 				finish_x2 = (i % 128)*8 + 8
 				self.finish_line = (finish_x1, finish_x2, finish_y) # coordinates of the finish line
-			if c == START:
+			if c is START:
 			# starting position
 				self.start_positions.append(Vector((i % 128)*8 + 8, (127 - i/128)*8 + 4))
-			elif c == ITEM:
+			elif c is ITEM:
 			# item block
 				x, y = i % 128, 127 - i/128
 				if not (x, y) in self.item_blocks.keys():
@@ -96,9 +96,9 @@ class Track(object):
 		beacons = []
 		remaining = []
 		for i, c in enumerate(bstring):
-			if c == chr(0): # a new beacon was found
+			if c is chr(0): # a new beacon was found
 				remaining.append(Vector(i%128, 127 - i/128))
-			elif c == chr(127): # first or second beacon
+			elif c is chr(127): # first or second beacon
 				beacons.insert(0, Vector(i%128, 127 - i/128))
 		while remaining != []:
 			b1 = beacons[-1]
@@ -115,7 +115,7 @@ class Track(object):
 			path = bresenham(p1, p2)
 			for c in path:
 				x, y = c.pair()
-				if self.data[x+128*(127-y)] == WALL or self.special_data[x+128*(127-y)] == FINISH:
+				if self.data[x+128*(127-y)] is WALL or self.special_data[x+128*(127-y)] is FINISH:
 					return False
 			return True
 		
@@ -123,9 +123,9 @@ class Track(object):
 			"""returns the id of the closest beacon that is in line of sight"""
 			beacons = self.beacons
 			x, y = position.pair()
-			if self.data[x+128*(127-y)] == WALL:
+			if self.data[x+128*(127-y)] is WALL:
 				return 255
-			if self.special_data[x+128*(127-y)] == FINISH:
+			if self.special_data[x+128*(127-y)] is FINISH:
 				return 0
 			min_distance = float("infinity")
 			bid = None
@@ -133,7 +133,7 @@ class Track(object):
 				if position.distance(v) < min_distance and in_sight(position, v):
 					min_distance = position.distance(v)
 					bid = i
-			if bid != None:
+			if not bid is None:
 				return bid
 			for i, v in enumerate(beacons):
 				if position.distance(v) < min_distance:
@@ -174,7 +174,7 @@ class Track(object):
 			if not(0 <= x < 128 and 0 <= y < 128): # out of map
 				return WALL
 			data = self.data[i]
-			if data == GHOST: # ghost house vanishing wall
+			if data is GHOST: # ghost house vanishing wall
 				if (x,y) in self.objects:
 					if hit:
 						self.objects.pop((x, y))
@@ -187,7 +187,7 @@ class Track(object):
 	def ground_friction(self, position):
 		"""returns the ground friction coefficient corresponding to the given position on the track"""
 		ground_type = self.type(position)
-		if ground_type == GRASS:
+		if ground_type is GRASS:
 			return 50.
 		else:
 			return 10.

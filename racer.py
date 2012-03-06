@@ -42,8 +42,8 @@ class Racer(object):
 		self.car.update(dt)
 	
 	def get_item(self, item_id=None):
-		if self.item == ITEMS[0]:
-			if item_id != None:
+		if self.item is ITEMS[0]:
+			if not item_id is None:
 				self.item = ITEMS[item_id]
 			else:
 				self.item = random.choice(ITEMS[1:])
@@ -51,13 +51,13 @@ class Racer(object):
 			self.item_sprite.image = sprite_seq['item unknown']
 	
 	def use_item(self, alternate=False):
-		if self.state.active and self.item != ITEMS[0] and self.state.item_rolling == 0:
+		if self.active() and not self.item is ITEMS[0] and self.state.item_rolling == 0:
 			self.item.on_use(self.race, self, alternate)
 			self.item = ITEMS[0]
 			self.item_sprite.image = self.item.image
 	
 	def jump(self):
-		if self.state.active:
+		if self.active():
 			self.car.jump()
 	
 	def display_times(self):
@@ -76,6 +76,12 @@ class Racer(object):
 				s += empty_time
 		self.lap_times_label.text = s
 	
+	def active(self):
+		"""returns True if the player can control the car"""
+		if self.car.state.lakitu or self.car.state.spin:
+			return False
+		else:
+			return True
 	def new_lap(self, incr=1):
 		"""change the number of laps of the racer (going through the finish line)"""
 		self.lap += incr # incr can be -1 if going backwards through the line
@@ -99,5 +105,3 @@ class RacerState(object):
 	"""The current state of a racer"""
 	def __init__(self):
 		self.item_rolling = 0.
-		self.active = True # the player can control the car
-
