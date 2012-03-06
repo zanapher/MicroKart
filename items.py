@@ -78,7 +78,7 @@ class PowerUpFeather(PowerUp):
 		super(PowerUpFeather, self).__init__(sprite_seq['item feather'], "Feather")
 	def on_use(self, race, racer, alternate):
 		if not racer.car.state.aerial and not racer.car.state.jump:
-			racer.car.state.change(aerial=.5)
+			racer.car.state.change(aerial=1.)
 
 class PowerUpLightning(PowerUp):
 	def __init__(self):
@@ -86,7 +86,7 @@ class PowerUpLightning(PowerUp):
 	def on_use(self, race, racer, alternate):
 		for opponent in race.racers:
 			if not opponent is racer and opponent.car.is_vulnerable():
-				opponent.car.state.change(lightning=3.)
+				opponent.car.state.change(lightning=1.)
 				opponent.car.spin()
 
 class PowerUpStar(PowerUp):

@@ -53,7 +53,7 @@ class Car(object):
 	def jump(self):
 		"""the car makes a low jump"""
 		if not self.state.jump and not self.state.aerial:
-			self.state.change(jump=0.25)
+			self.state.change(jump=1.)
 	def spin(self):
 		"""make the car spin out of control"""
 		self.state.change(spin=1.)
@@ -61,11 +61,9 @@ class Car(object):
 		"""the car must be put back on the track by Lakitu"""
 		self.set_position(self.race.track.get_beacon(self.last_ground)) # move the car to the nearest beacon
 		self.stop()
+		self.state.reset()
 		self.state.change(lakitu = 1.) # timer until the car is dropped on the track
 		track = self.race.track
-		self.lakitu_sprite = pyglet.sprite.Sprite(sprite_seq['lakitu fishing'], batch=self.race.window.batch, group=track.cars_group)
-		self.lakitu_sprite.opacity = 0
-		self.lakitu_sprite.position = self.position.pair()
 		# reorient the car
 		bid = track.get_beacon_id(self.position)
 		direction_vector = track.beacons[(bid+1)%len(track.beacons)] - track.beacons[bid-1]
@@ -107,10 +105,10 @@ class Car(object):
 		self.position = new_position
 		# position the sprite according to the state of the car
 		self.shadow.position = self.position.pair()
-		if self.state.jump:
-			self.sprite.position = (self.position + Vector(0, 5)).pair()
-		elif self.state.aerial:
+		if self.state.aerial:
 			self.sprite.position = (self.position + Vector(0, 10)).pair()
+		elif self.state.jump:
+			self.sprite.position = (self.position + Vector(0, 5)).pair()
 		else:
 			self.sprite.position = self.position.pair()
 			self.last_ground = self.position
@@ -147,7 +145,7 @@ class Car(object):
 					# touch a bumper
 						if self.speed.norm() < 100:
 							self.set_speed(self.speed.normalize(100.))
-						self.state.change(aerial=.5)
+						self.state.change(aerial=1.)
 					if self.race.track.type(c) is BOOST and self.speed.norm() < 300.:
 					# touch a booster
 						self.set_speed(self.speed.normalize(300.))
@@ -239,42 +237,53 @@ class CarState(object):
 		self.lakitu = 0. # if the car is being rescued by Lakitu (fallen in deep ground)
 		self.spin = 0. # the car is spinning out of control
 	
-	def change(self, lightning=None, jump=None, aerial=None, lakitu=None, spin=None):
+	def change(self, lightning=None, star=None, jump=None, aerial=None, lakitu=None, spin=None):
 		"""changes the state of the car, in a way that enables to fix the different parameters that are affected"""
 		if not lightning is None:
-			self.lightning = lightning
-			if lightning > 0:
+			self.lightning = max(0., lightning)
+			if self.lightning:
 				self.car.sprite.scale = .5
 				self.car.shadow.scale = .5
+			else:
+				self.car.sprite.scale = 1
+				self.car.shadow.scale = 1
+		if not star is None:
+			self.star = max(0., star)
 		if not jump is None: # regular jump
-			self.jump = jump
+			self.jump = max(0., jump)
 		if not aerial is None: # super jump (feather or bumper)
-			self.aerial = aerial
+			self.aerial = max(0., aerial)
 		if not lakitu is None:
-			self.lakitu = lakitu
+			self.lakitu = max(0., lakitu)
+			if self.lakitu:
+				if not hasattr(self.car, 'lakitu_sprite'):
+					self.car.lakitu_sprite = pyglet.sprite.Sprite(sprite_seq['lakitu fishing'], batch=self.car.race.window.batch, group=self.car.race.track.cars_group)
+					self.car.lakitu_sprite.position = self.car.position.pair()
+				opacity = 255 - int(self.lakitu*255)
+				self.car.lakitu_sprite.opacity = opacity
+				self.car.sprite.opacity = opacity
+			elif hasattr(self.car, 'lakitu_sprite'):
+				self.car.lakitu_sprite.delete()
+				del self.car.lakitu_sprite
 		if not spin is None:
-			self.spin = spin
+			self.spin = max(0., spin)
 	
 	def update(self, dt):
 		"""updates the state of a car after dt seconds"""
 		if self.jump:
-			self.jump = max(0., self.jump - dt)
+			self.change(jump=self.jump - 4*dt)
 		if self.aerial:
-			self.aerial = max(0., self.aerial - dt)
+			self.change(aerial=self.aerial - 2*dt)
 		if self.star:
-			self.star = max(0., self.star - dt)
+			self.change(star=self.star - dt)
 		if self.lightning:
-			self.lightning = max(0., self.lightning - dt)
-			if not self.lightning:
-				self.car.sprite.scale = 1
-				self.car.shadow.scale = 1
+			self.change(lightning=self.lightning - dt/4)
 		if self.lakitu:
-			self.lakitu = max(0., self.lakitu - dt/2)
-			opacity = 255 - int(self.lakitu*255)
-			self.car.lakitu_sprite.opacity = opacity
-			self.car.sprite.opacity = opacity
-			if not self.lakitu:
-				self.car.lakitu_sprite.delete()
+			self.change(lakitu=self.lakitu - dt/2)
 		if self.spin:
 			self.car.set_direction(self.car.direction + dt*2*math.pi)
-			self.spin = max(0, self.spin - dt)
+			self.change(spin=self.spin - dt)
+	
+	def reset(self):
+		"""returns the state to the default value"""
+		self.change(lightning=0., star=0., jump=0., aerial=0., lakitu=0., spin=0.)

@@ -97,7 +97,9 @@ def main():
 			window.race.player1.get_item(7)
 		elif symbol is key._8:
 			window.race.player1.get_item(8)
-		elif symbol is pyglet.window.key.T:
+		elif symbol is key.F3:
+			pyglet.image.get_buffer_manager().get_color_buffer().save('screenshot.png')
+		elif symbol is key.T:
 			window.race.player1.car.spin()
 	
 	@window.event
@@ -121,7 +123,7 @@ def main():
 		elif symbol is key.D:
 			window.race.player2.input_right = False
 
-	window.race = Race(window, 15, [PEACH, BOWSER, MARIO, KOOPA, YOSHI, DKJR, TOAD, LUIGI])
+	window.race = Race(window, 13, [TOAD, BOWSER, MARIO, KOOPA, YOSHI, DKJR, TOAD, LUIGI])
 	window.ui = UI(window, window.race)
 	pyglet.clock.schedule(update)
 	window.fps_display = pyglet.clock.ClockDisplay() # FPS counter
