@@ -89,7 +89,6 @@ class Track(object):
 			self.make_beacons_map()
 			pyglet.resource.reindex()
 			self.beacons_map = pyglet.resource.file("%sbm.pgm" % track_num).read()[15:]
-		print self.objects
 	
 	def make_beacons(self):
 		"""computes the sequence of beacon points from the beacons file"""
@@ -161,8 +160,11 @@ class Track(object):
 		return Vector(self.beacons[bid].x * 8, self.beacons[bid].y * 8)
 	
 	def type(self, position, special=False, hit=False):
-		"""returns the track type at given position"""
-		x, y = int(position.x) / 8, int(position.y) / 8
+		"""returns the track type at given position (position can be a vector in big coordinates or a pair of small coordinates)"""
+		if isinstance(position, Vector):
+			x, y = int(position.x) / 8, int(position.y) / 8
+		else:
+			x, y = position
 		i  = x + 128*(127-y)
 		if special:
 			if not(0 <= x < 128 and 0 <= y < 128): # out of map
@@ -173,7 +175,6 @@ class Track(object):
 				return WALL
 			data = self.data[i]
 			if data == GHOST: # ghost house vanishing wall
-				print "Ghost", x, y
 				if (x,y) in self.objects:
 					if hit:
 						self.objects.pop((x, y))
@@ -200,18 +201,18 @@ class ObjectItemBlock(object):
 	def __init__(self, track, x, y):
 		self.track = track
 		self.delay = 0. # time before it is active again (after being used)
-		self.sprite = pyglet.sprite.Sprite(sprite_seq[10], 8*x, 8*y, batch=self.track.window.batch, group=track.objects_group)
+		self.sprite = pyglet.sprite.Sprite(sprite_seq['item block'], 8*x, 8*y, batch=self.track.window.batch, group=track.objects_group)
 	def update(self, dt):
 		if self.delay > 0:
 			self.delay -= dt
 			if self.delay <= 0:
 				self.delay = 0
-				self.sprite.image = sprite_seq[10]
+				self.sprite.image = sprite_seq['item block']
 	def activate(self):
 		self.delay = 15.
-		self.sprite.image = sprite_seq[11]
+		self.sprite.image = sprite_seq['item block empty']
 class ObjectGhostWall(object):
 	"""A wall that disappears when hit by a car or particle"""
 	def __init__(self, track, x, y):
 		self.track = track
-		self.sprite = pyglet.sprite.Sprite(sprite_seq[40], 8 * x + 4, 8 * y + 4, batch=track.window.batch, group=track.objects_group)
+		self.sprite = pyglet.sprite.Sprite(sprite_seq['ghost wall'], 8 * x + 4, 8 * y + 4, batch=track.window.batch, group=track.objects_group)

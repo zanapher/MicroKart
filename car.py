@@ -1,6 +1,6 @@
 import pyglet
 from pyglet.gl import *
-from vector import Vector
+from vector import Vector, bresenham
 import math
 
 from track import WALL, DEEP, GRASS, ROAD, JUMP, BOOST, FINISH, START, ITEM, EMPTY
@@ -21,7 +21,7 @@ class Car(object):
 		
 		# the sprite of the car
 		self.sprite = pyglet.sprite.Sprite(self.choose_sprite(), batch=race.window.batch, group=race.track.cars_group)
-		self.shadow = pyglet.sprite.Sprite(sprite_seq[38], batch=race.window.batch, group=race.track.shadows_group)
+		self.shadow = pyglet.sprite.Sprite(sprite_seq['shadow'], batch=race.window.batch, group=race.track.shadows_group)
 		self.shadow.opacity = 100
 		self.sprite.position = self.position.pair()
 	
@@ -44,8 +44,7 @@ class Car(object):
 
 	def choose_sprite(self):
 		"""returns the appropriate sprite image index according to the orientation of the car"""
-		angle = -(math.pi/2 + self.direction) % (2*math.pi) # translate the angle to correspond to the sprites (0 is up, increasing clockwise)
-		return self.character.sprite_seq[int(round(angle * 11 / math.pi)) % 22] # there are 22 possible orientation sprites
+		return self.character.sprite_seq[int(self.direction * 11 / math.pi) % 22] # there are 22 possible orientation sprites
 	
 	# player inputs
 	def turn(self, dt):
@@ -62,7 +61,7 @@ class Car(object):
 		self.stop()
 		self.state.change(lakitu = 1.) # timer until the car is dropped on the track
 		track = self.race.track
-		self.lakitu_sprite = pyglet.sprite.Sprite(sprite_seq[37], batch=self.race.window.batch, group=track.cars_group)
+		self.lakitu_sprite = pyglet.sprite.Sprite(sprite_seq['lakitu fishing'], batch=self.race.window.batch, group=track.cars_group)
 		self.lakitu_sprite.opacity = 0
 		self.lakitu_sprite.position = self.position.pair()
 		# reorient the car
@@ -110,29 +109,40 @@ class Car(object):
 
 	def move(self, new_position):
 		"""move the car"""
-		if not self.state.aerial: # a flying car can move over anything
-			if self.race.track.type(new_position, hit=True) == WALL:
-			# hit a wall
-				self.set_speed(-.25*self.speed) # bounce
-				new_position = self.position # do not move
-			if not self.state.jump:
-				if self.race.track.type(new_position) in [WALL, DEEP]:
-				# car is in an invalid position
-					return self.lakitu()
-				if self.racer.item == ITEMS[0] and self.race.track.type(new_position, special=True) == ITEM:
-				# the car touched an item block
-					block = self.race.track.item_blocks[(int(new_position.x)/8, int(new_position.y)/8)] # find the block that was touched
-					if not block.delay:
-						block.activate()
-						self.racer.get_item()
-				if self.race.track.type(new_position) == JUMP:
-				# touch a bumper
-					if self.speed.norm() < 100:
-						self.set_speed(self.speed.normalize(100.))
-					self.state.change(aerial=.5)
-				if self.race.track.type(new_position) == BOOST and self.speed.norm() < 300.:
-				# touch a booster
-					self.set_speed(self.speed.normalize(300.))
+		path = bresenham(self.position, new_position)
+		for i, c in enumerate(path):
+			if not self.state.aerial: # a flying car can move over anything
+				if self.race.track.type(c, hit=True) is WALL:
+				# hit a wall
+					if i == 0:
+						# car is stuck in a wall
+						return self.lakitu()
+					else:
+						# the car bounces against the wall
+						if path[i-1][0] != c[0]:
+							self.set_speed(Vector(-.5*self.speed.x, .5*self.speed.y))
+						else:
+							self.set_speed(Vector(.5*self.speed.x, -.5*self.speed.y))
+						new_position = self.position # do not move
+					break
+				if not self.state.jump:
+					if self.race.track.type(c) is DEEP:
+					# car is in a hole
+						return self.lakitu()
+					if self.racer.item is ITEMS[0] and self.race.track.type(c, special=True) is ITEM:
+					# the car touched an item block
+						block = self.race.track.item_blocks[(c[0], c[1])] # find the block that was touched
+						if not block.delay:
+							block.activate()
+							self.racer.get_item()
+					if self.race.track.type(c) is JUMP:
+					# touch a bumper
+						if self.speed.norm() < 100:
+							self.set_speed(self.speed.normalize(100.))
+						self.state.change(aerial=.5)
+					if self.race.track.type(c) is BOOST and self.speed.norm() < 300.:
+					# touch a booster
+						self.set_speed(self.speed.normalize(300.))
 		self.set_position(new_position)
 	
 	def stop(self):

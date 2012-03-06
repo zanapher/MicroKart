@@ -47,20 +47,20 @@ class Vector(object):
 def bresenham(p1, p2):
 	"""Returns the path of integer points from p1 to p2 (Vectors)"""
 	dw, dh = 1, 1
-	x1, y1, x2, y2 = p1.x, p1.y, p2.x, p2.y
+	x1, y1, x2, y2 = int(p1.x), int(p1.y), int(p2.x), int(p2.y)
 	if x1 > x2:
 		dw = -1
 	if y1 > y2:
 		dh = -1
 	if x1 == x2:
-		return [Vector(x1, i) for i in range(y1, y2+dh, dh)]
+		return [(x1/8, i) for i in range(y1/8, y2/8+dh, dh)]
 	elif y1 == y2:
-		return [Vector(i, y1) for i in range(x1, x2+dw, dw)]
+		return [(i, y1/8) for i in range(x1/8, x2/8+dw, dw)]
 	width = abs(x2 - x1) # width and height are the constant dimensions of the segment
 	height = abs(y2 - y1)
 	w, h = width, height # w and h are the "current" width and height
 	x, y = (x1, y1) # (x, y) is the current point in the path
-	path = [Vector(x, y)]
+	path = [(x/8, y/8)]
 	while (x, y) != (x2, y2):
 		if w > h:
 			x += dw
@@ -74,5 +74,6 @@ def bresenham(p1, p2):
 			x += dw
 			y += dh
 			w, h = width, height
-		path.append(Vector(x, y))
+		if (x/8, y/8) != path[-1]:
+			path.append((x/8, y/8))
 	return path

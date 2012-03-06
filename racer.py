@@ -16,7 +16,7 @@ class Racer(object):
 		self.state = RacerState()
 		self.item = ITEMS[0]
 		self.item_sprite = pyglet.sprite.Sprite(self.item.image, batch=race.window.batch)
-		self.lap_sprite = pyglet.sprite.Sprite(sprite_seq[-1], batch=race.window.batch)
+		self.lap_sprite = pyglet.sprite.Sprite(sprite_seq['none'], batch=race.window.batch)
 		self.lap = 0
 		self.lap_times = []
 		self.lap_times_label = pyglet.text.Label(color=self.character.color+(255,), font_name="Courier", font_size=10, bold=True, width=200, multiline=True, batch=race.window.batch)
@@ -48,7 +48,7 @@ class Racer(object):
 			else:
 				self.item = random.choice(ITEMS[1:])
 			self.state.item_rolling = 1.
-			self.item_sprite.image = sprite_seq[9]
+			self.item_sprite.image = sprite_seq['item unknown']
 	
 	def use_item(self, alternate=False):
 		if self.state.active and self.item != ITEMS[0] and self.state.item_rolling == 0:
@@ -83,17 +83,17 @@ class Racer(object):
 			self.lap_times.append(self.race.time)
 			self.display_times()
 		if self.lap == self.race.laps:
-			self.lap_sprite.image = sprite_seq[35]
+			self.lap_sprite.image = sprite_seq['final lap']
 		elif self.lap > self.race.laps:
-			self.lap_sprite.image = sprite_seq[36]
+			self.lap_sprite.image = sprite_seq['lakitu flag']
 		elif self.lap == 2:
-			self.lap_sprite.image = sprite_seq[32]
+			self.lap_sprite.image = sprite_seq['lap 2']
 		elif self.lap == 3:
-			self.lap_sprite.image = sprite_seq[33]
+			self.lap_sprite.image = sprite_seq['lap 3']
 		elif self.lap == 4:
-			self.lap_sprite.image = sprite_seq[34]
+			self.lap_sprite.image = sprite_seq['lap 4']
 		else:
-			self.lap_sprite.image = sprite_seq[-1]
+			self.lap_sprite.image = sprite_seq['none']
 
 class RacerState(object):
 	"""The current state of a racer"""

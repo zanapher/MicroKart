@@ -1,6 +1,6 @@
 import pyglet
 
-from vector import Vector
+from vector import Vector, bresenham
 import math
 from track import WALL, DEEP, GRASS, ROAD, JUMP, BOOST, FINISH, START, ITEM, EMPTY
 from graphics import sprite_seq
@@ -14,17 +14,17 @@ class PowerUp(object):
 
 class PowerUpNone(PowerUp):
 	def __init__(self):
-		super(PowerUpNone, self).__init__(sprite_seq[0], "None")
+		super(PowerUpNone, self).__init__(sprite_seq['item empty'], "None")
 
 class PowerUpCoin(PowerUp):
 	def __init__(self):
-		super(PowerUpCoin, self).__init__(sprite_seq[1], "Coins")
+		super(PowerUpCoin, self).__init__(sprite_seq['item coins'], "Coins")
 	def on_use(self, race, racer, alternate):
 		racer.car.state.coins += 5
 
 class PowerUpBanana(PowerUp):
 	def __init__(self):
-		super(PowerUpBanana, self).__init__(sprite_seq[2], "Banana")
+		super(PowerUpBanana, self).__init__(sprite_seq['item banana'], "Banana")
 	def on_use(self, race, racer, alternate):
 		safe_distance = 8 + racer.car.get_radius() # the radius of a banana is 4
 		position = racer.car.position - racer.car.get_direction_vector().normalize(safe_distance)
@@ -34,7 +34,7 @@ class PowerUpBanana(PowerUp):
 
 class PowerUpMushroom(PowerUp):
 	def __init__(self):
-		super(PowerUpMushroom, self).__init__(sprite_seq[3], "Mushroom")
+		super(PowerUpMushroom, self).__init__(sprite_seq['item mushroom'], "Mushroom")
 	def on_use(self, race, racer, alternate):
 		racer.car.state.change(mushroom=1.)
 		if racer.car.speed.norm() < 400.:
@@ -42,7 +42,7 @@ class PowerUpMushroom(PowerUp):
 
 class PowerUpGreenShell(PowerUp):
 	def __init__(self):
-		super(PowerUpGreenShell, self).__init__(sprite_seq[4], "Green Shell")
+		super(PowerUpGreenShell, self).__init__(sprite_seq['item green shell'], "Green Shell")
 	def on_use(self, race, racer, alternate):
 		safe_distance = 8 + racer.car.get_radius() # the radius of a green shell is 4
 		if alternate: # shell is shot slowly backwards
@@ -59,7 +59,7 @@ class PowerUpGreenShell(PowerUp):
 
 class PowerUpRedShell(PowerUp):
 	def __init__(self):
-		super(PowerUpRedShell, self).__init__(sprite_seq[5], "Red Shell")
+		super(PowerUpRedShell, self).__init__(sprite_seq['item red shell'], "Red Shell")
 	def on_use(self, race, racer, alternate):
 		safe_distance = 8 + racer.car.get_radius() # the radius of a red shell is 4
 		position = racer.car.position + racer.car.get_direction_vector().normalize(safe_distance)
@@ -76,14 +76,14 @@ class PowerUpRedShell(PowerUp):
 
 class PowerUpFeather(PowerUp):
 	def __init__(self):
-		super(PowerUpFeather, self).__init__(sprite_seq[6], "Feather")
+		super(PowerUpFeather, self).__init__(sprite_seq['item feather'], "Feather")
 	def on_use(self, race, racer, alternate):
 		if not racer.car.state.aerial and not racer.car.state.jump:
 			racer.car.state.change(aerial=.5)
 
 class PowerUpLightning(PowerUp):
 	def __init__(self):
-		super(PowerUpLightning, self).__init__(sprite_seq[7], "Lightning")
+		super(PowerUpLightning, self).__init__(sprite_seq['item lightning'], "Lightning")
 	def on_use(self, race, racer, alternate):
 		for opponent in race.racers:
 			if opponent != racer and opponent.car.is_vulnerable():
@@ -92,7 +92,7 @@ class PowerUpLightning(PowerUp):
 
 class PowerUpStar(PowerUp):
 	def __init__(self):
-		super(PowerUpStar, self).__init__(sprite_seq[8], "Star")
+		super(PowerUpStar, self).__init__(sprite_seq['item star'], "Star")
 	def on_use(self, race, racer, alternate):
 		pass
 
@@ -156,7 +156,7 @@ class ParticleBanana(Particle):
 	color = (248, 248, 0)
 	name = "Banana"
 	def __init__(self, race, position):
-		super(ParticleBanana, self).__init__(race, position, sprite_seq[13], 4)
+		super(ParticleBanana, self).__init__(race, position, sprite_seq['banana'], 4)
 	
 	def update(self, dt):
 		self.check_collisions()
@@ -171,7 +171,7 @@ class ParticleGreenShell(Particle):
 	color = (64, 224, 64)
 	name = "Green Shell"
 	def __init__(self, race, position, direction, speed):
-		super(ParticleGreenShell, self).__init__(race, position, sprite_seq[14], 4)
+		super(ParticleGreenShell, self).__init__(race, position, sprite_seq['green shell'], 4)
 		self.direction = direction
 		self.speed = speed
 	def update(self, dt):
@@ -179,46 +179,23 @@ class ParticleGreenShell(Particle):
 		current_position = self.position
 		move = self.get_direction_vector() * self.speed * dt
 		new_position = current_position + move
-		if track.type(new_position, hit=True) == WALL:
-		# the shell bounces
-			x = math.floor(new_position.x / 8)
-			y = math.floor(new_position.y / 8)
-			move_left = Vector(-move.y, move.x)
-			if move.x >= 0:
-				if move.y >= 0:
-					to_corner = Vector(8*x - current_position.x, 8*y - current_position.y)
-					if move_left * to_corner >= 0:
-						self.direction = -self.direction
-					else:
-						self.direction = -self.direction + math.pi
-				else:
-					to_corner = Vector(8*x - current_position.x, 8*(y+1) - current_position.y)
-					if move_left * to_corner >= 0:
-						self.direction = -self.direction + math.pi
-					else:
-						self.direction = -self.direction
-			else:
-				if move.y >=0:
-					to_corner = Vector(8*(x+1) - current_position.x, 8*y - current_position.y)
-					if move_left * to_corner >= 0:
-						self.direction = -self.direction + math.pi
-					else:
-						self.direction = -self.direction
-				else:
-					to_corner = Vector(8*(x+1) - current_position.x, 8*(y+1) - current_position.y)
-					if move_left * to_corner >= 0:
-						self.direction = -self.direction
-					else:
-						self.direction = -self.direction + math.pi
-			new_position = current_position
-			self.set_speed(self.speed - 15.)
-			if self.speed <= 40:
-				return self.remove() # if the shell becomes too slow it disappears
-		elif track.type(new_position) == DEEP:
-		# the shell disappears
-			return self.remove()
-		else:
-			self.set_position(new_position)
+		path = bresenham(current_position, new_position)
+		for i, c in enumerate(path):
+			if track.type(c, hit=True) == WALL:
+			# the shell bounces
+				if c[0] != path[i-1][0]: # vertical wall
+					self.direction = -self.direction + math.pi
+				else: # horizontal wall
+					self.direction = -self.direction
+				new_position = current_position # don't move
+				self.set_speed(self.speed - 15.) # slow down after each bounce
+				if self.speed <= 40:
+					return self.remove() # if the shell becomes too slow it disappears
+				break
+			elif track.type(new_position) == DEEP:
+			# the shell disappears
+				return self.remove()
+		self.set_position(new_position)
 		self.check_collisions()
 	
 	def car_collision(self, car):
@@ -235,7 +212,7 @@ class ParticleRedShell(Particle):
 	color = (248, 0, 0)
 	name = "Red Shell"
 	def __init__(self, race, position, direction, speed, target):
-		super(ParticleRedShell, self).__init__(race, position, sprite_seq[15], 4)
+		super(ParticleRedShell, self).__init__(race, position, sprite_seq['red shell'], 4)
 		self.direction = direction
 		self.turn = 2.
 		self.speed = speed
@@ -254,11 +231,12 @@ class ParticleRedShell(Particle):
 			self.direction += direction_variation
 		move = self.get_direction_vector() * self.speed * dt
 		new_position = current_position + move
-		if track.type(new_position, hit=True) in [WALL, DEEP]:
-		# the shell hits a wall or a hole and disappears
-			return self.remove()
-		else:
-			self.set_position(new_position)
+		path = bresenham(current_position, new_position)
+		for i, c in enumerate(path):
+			if track.type(c, hit=True) in [WALL, DEEP]:
+			# the shell hits a wall or a hole and disappears
+				return self.remove()
+		self.set_position(new_position)
 		self.check_collisions()
 	
 	def car_collision(self, car):
