@@ -5,6 +5,7 @@ from graphics import sprite_seq
 
 # self.data
 WALL = chr(0)
+GHOST = chr(40)
 DEEP = chr(50)
 GRASS = chr(127)
 ROAD = chr(255)
@@ -46,11 +47,17 @@ class Track(object):
 		self.data = pyglet.resource.file("%st.pgm" % track_num).read()[15:]
 		self.special_data = pyglet.resource.file("%ss.pgm" % track_num).read()[15:]
 		self.beacons = self.make_beacons()
+		self.objects = {}
 		
 		# create the track's special elements
 		self.item_blocks = {} # dictionary of item blocks indexed by the small coordinates (128x128) of their NE corner
 		self.item_blocks_list = [] # list of item blocks to update at the end of each turn
 		self.start_positions = []
+		# Parse data to place special objects (coins, vanishing wall, ice blocks)
+		for i, c in enumerate(self.data):
+			if c == GHOST:
+				x, y = i % 128, 127 - i / 128
+				self.objects[(x, y)] = ObjectGhostWall(self, x, y)
 		# Parse special data for track elements (finish line, starting positions, etc.)
 		for i, c in enumerate(self.special_data):
 			if c == FINISH and self.special_data[i-1] != FINISH:
@@ -68,7 +75,7 @@ class Track(object):
 			# item block
 				x, y = i % 128, 127 - i/128
 				if not (x, y) in self.item_blocks.keys():
-					new_block = ObjectItemBlock(self, (x+1)*8, y*8)
+					new_block = ObjectItemBlock(self, (x+1), y)
 					self.item_blocks_list.append(new_block)
 					self.item_blocks[(x, y)] = new_block # an item block spans 4 cells in the 128x128 map
 					self.item_blocks[(x+1, y)] = new_block
@@ -82,6 +89,7 @@ class Track(object):
 			self.make_beacons_map()
 			pyglet.resource.reindex()
 			self.beacons_map = pyglet.resource.file("%sbm.pgm" % track_num).read()[15:]
+		print self.objects
 	
 	def make_beacons(self):
 		"""computes the sequence of beacon points from the beacons file"""
@@ -152,19 +160,28 @@ class Track(object):
 		bid = self.get_beacon_id(position)
 		return Vector(self.beacons[bid].x * 8, self.beacons[bid].y * 8)
 	
-	def type(self, position, special=False):
+	def type(self, position, special=False, hit=False):
 		"""returns the track type at given position"""
-		x, y = int(position.x), int(position.y)
-		x = x/8 # compensate for data scale
-		y = 127 - y/8
+		x, y = int(position.x) / 8, int(position.y) / 8
+		i  = x + 128*(127-y)
 		if special:
 			if not(0 <= x < 128 and 0 <= y < 128): # out of map
 				return EMPTY
-			return self.special_data[(x + 128*y)]
+			return self.special_data[i]
 		else:
 			if not(0 <= x < 128 and 0 <= y < 128): # out of map
 				return WALL
-			return self.data[(x + 128*y)]
+			data = self.data[i]
+			if data == GHOST: # ghost house vanishing wall
+				print "Ghost", x, y
+				if (x,y) in self.objects:
+					if hit:
+						self.objects.pop((x, y))
+					return WALL
+				else:
+					return DEEP
+			else:
+				return data
 	
 	def ground_friction(self, position):
 		"""returns the ground friction coefficient corresponding to the given position on the track"""
@@ -178,12 +195,12 @@ class Track(object):
 		for block in self.item_blocks_list:
 			block.update(dt)
 
-class ObjectItemBlock():
+class ObjectItemBlock(object):
+	"""A '?' block that gives a powerup when a car passes on it"""
 	def __init__(self, track, x, y):
 		self.track = track
-		self.position = (x, y)
 		self.delay = 0. # time before it is active again (after being used)
-		self.sprite = pyglet.sprite.Sprite(sprite_seq[10], x, y, batch=self.track.window.batch, group=track.objects_group)
+		self.sprite = pyglet.sprite.Sprite(sprite_seq[10], 8*x, 8*y, batch=self.track.window.batch, group=track.objects_group)
 	def update(self, dt):
 		if self.delay > 0:
 			self.delay -= dt
@@ -193,3 +210,8 @@ class ObjectItemBlock():
 	def activate(self):
 		self.delay = 15.
 		self.sprite.image = sprite_seq[11]
+class ObjectGhostWall(object):
+	"""A wall that disappears when hit by a car or particle"""
+	def __init__(self, track, x, y):
+		self.track = track
+		self.sprite = pyglet.sprite.Sprite(sprite_seq[40], 8 * x + 4, 8 * y + 4, batch=track.window.batch, group=track.objects_group)

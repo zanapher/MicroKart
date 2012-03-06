@@ -179,12 +179,38 @@ class ParticleGreenShell(Particle):
 		current_position = self.position
 		move = self.get_direction_vector() * self.speed * dt
 		new_position = current_position + move
-		if track.type(new_position) == WALL:
+		if track.type(new_position, hit=True) == WALL:
 		# the shell bounces
-			if track.type(current_position + Vector(move.x, 0)) != WALL:
-				self.direction = -self.direction # bounce against a horizontal wall
-			if track.type(current_position + Vector(0, move.y)) != WALL:
-				self.direction = -self.direction + math.pi # bounce against a vertical wall
+			x = math.floor(new_position.x / 8)
+			y = math.floor(new_position.y / 8)
+			move_left = Vector(-move.y, move.x)
+			if move.x >= 0:
+				if move.y >= 0:
+					to_corner = Vector(8*x - current_position.x, 8*y - current_position.y)
+					if move_left * to_corner >= 0:
+						self.direction = -self.direction
+					else:
+						self.direction = -self.direction + math.pi
+				else:
+					to_corner = Vector(8*x - current_position.x, 8*(y+1) - current_position.y)
+					if move_left * to_corner >= 0:
+						self.direction = -self.direction + math.pi
+					else:
+						self.direction = -self.direction
+			else:
+				if move.y >=0:
+					to_corner = Vector(8*(x+1) - current_position.x, 8*y - current_position.y)
+					if move_left * to_corner >= 0:
+						self.direction = -self.direction + math.pi
+					else:
+						self.direction = -self.direction
+				else:
+					to_corner = Vector(8*(x+1) - current_position.x, 8*(y+1) - current_position.y)
+					if move_left * to_corner >= 0:
+						self.direction = -self.direction
+					else:
+						self.direction = -self.direction + math.pi
+			new_position = current_position
 			self.set_speed(self.speed - 15.)
 			if self.speed <= 40:
 				return self.remove() # if the shell becomes too slow it disappears
@@ -228,7 +254,7 @@ class ParticleRedShell(Particle):
 			self.direction += direction_variation
 		move = self.get_direction_vector() * self.speed * dt
 		new_position = current_position + move
-		if track.type(new_position) in [WALL, DEEP]:
+		if track.type(new_position, hit=True) in [WALL, DEEP]:
 		# the shell hits a wall or a hole and disappears
 			return self.remove()
 		else:

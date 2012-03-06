@@ -1,7 +1,7 @@
 import pyglet
 
 # prepare the sprites
-sprite_seq = pyglet.image.ImageGrid(pyglet.resource.image('sprite_sheet.gif'), 5, 8)
+sprite_seq = pyglet.image.ImageGrid(pyglet.resource.image('sprite_sheet.gif'), 6, 8)
 for img in sprite_seq:
 	img.anchor_x = img.width / 2
 	img.anchor_y = img.height / 2

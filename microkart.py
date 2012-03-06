@@ -30,7 +30,7 @@ def main():
 	window = pyglet.window.Window(1024, 768, config=config, resizable=True) # current window
 	window.batch = pyglet.graphics.Batch() # all the elements to draw will go in this batch
 	window.hidden_batch = pyglet.graphics.Batch() # the elements that are currently not shown
-#	glEnable(GL_LINE_SMOOTH) # enable anti-aliasing
+	glDisable(GL_LINE_SMOOTH) # enable anti-aliasing
 #	glHint (GL_LINE_SMOOTH_HINT, GL_NICEST);
 	glEnable(GL_BLEND) # enable transparency
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -119,7 +119,7 @@ def main():
 		elif symbol == key.D:
 			window.race.player2.input_right = False
 
-	window.race = Race(window, 13, [PEACH, BOWSER, KOOPA, TOAD, MARIO, LUIGI, YOSHI, DKJR])
+	window.race = Race(window, 11, [PEACH, BOWSER, KOOPA, TOAD, MARIO, LUIGI, YOSHI, DKJR])
 	window.ui = UI(window, window.race)
 	pyglet.clock.schedule(update)
 	pyglet.app.run()

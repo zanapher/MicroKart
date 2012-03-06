@@ -111,7 +111,7 @@ class Car(object):
 	def move(self, new_position):
 		"""move the car"""
 		if not self.state.aerial: # a flying car can move over anything
-			if self.race.track.type(new_position) == WALL:
+			if self.race.track.type(new_position, hit=True) == WALL:
 			# hit a wall
 				self.set_speed(-.25*self.speed) # bounce
 				new_position = self.position # do not move
