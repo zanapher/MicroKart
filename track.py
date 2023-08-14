@@ -66,6 +66,7 @@ class Track(object):
                 x, y = i % 128, 127 - i / 128
                 self.objects[(x, y)] = ObjectGhostWall(self, x, y)
         # Parse special data for track elements (finish line, starting positions, etc.)
+        print(self.special_data)
         for i, c in enumerate(self.special_data):
             if c is FINISH and not self.special_data[i - 1] is FINISH:
                 # left extremity of the finish line
