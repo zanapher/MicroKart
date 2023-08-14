@@ -14,7 +14,7 @@ class Character(object):
         # prepare the sprites
         self.sprite_seq = []
         for i in range(22):
-            self.sprite_seq.append(pyglet.resource.image(sprite_sheet + "-%d.png" % i))
+            self.sprite_seq.append(pyglet.resource.image("resources/characters/"+sprite_sheet + "-%d.png" % i))
         for image in self.sprite_seq:
             image.anchor_x = 17
             image.anchor_y = 9
